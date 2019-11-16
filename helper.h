@@ -1,6 +1,6 @@
 #pragma once
 
-// My definations
+// Powerful(Complex?...) Error Handling
 
 #define BEGIN_ERROR_HANDLING() HRESULT hr = (S_OK)
 #define HR_LOG(x,y,...) (SLog(y L" [HRESULT - 0x%x - %s]",##__VA_ARGS__,(x),TextizeHr(x).c_str()))
@@ -24,7 +24,9 @@ using Path = std::filesystem::path;
 
 // String Helper Functions
 
+// Quick BSTR Creator
 inline CComBSTR BSE(std::wstring str) { return CComBSTR(str.c_str()); }
+// More Readable
 inline LPCWSTR BSTR2SZ(CComBSTR bstr) { return &bstr[0]; }
 // Don't forget to rebase it.
 inline LPWSTR GetStrBuffer(std::wstring &str, size_t sz = 128) {

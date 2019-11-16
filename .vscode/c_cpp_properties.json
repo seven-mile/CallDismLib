@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.18362.0\\**",
+                "C:\\Program Files (x86)\\Microsoft Visual Studio\\Community\\VC\\Tools\\MSVC\\14.23.28105\\include",
+                "C:\\Program Files (x86)\\Microsoft Visual Studio\\Community\\VC\\Tools\\MSVC\\14.23.28105\\atlmfc\\include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "windowsSdkVersion": "10.0.18362.0",
+            "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/Community/VC/Tools/MSVC/14.23.28105/bin/Hostx64/x64/cl.exe"
+        }
+    ],
+    "version": 4
+}

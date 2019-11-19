@@ -59,30 +59,65 @@ HRESULT LoadDismCore()
 	return S_OK;
 }
 
+HRESULT ConfigProviderStore(CComPtr<IDismProviderStore> pProvStore)
+{
+	BEGIN_ERROR_HANDLING();
+
+	CHK(pProvStore->AddProvider(BSE(L"OSProvider")), "Failed to connect to the OSProvider.");
+
+	CComPtr<IDismProvider> pOsProv;
+	CHK(pProvStore->GetProvider(BSE(L"OSServices"), &pOsProv), "Failed to get OSServicesProvider.");
+
+	CComPtr<IDismOSServiceManager> pOsServ;
+	CHK(pOsProv->QueryInterface(&pOsServ), "Failed to get OSServiceManager.");
+
+	CHK(pOsServ->SetSystemPath(BSE(L"E:\\MyCache\\Vx")),
+		"Failed to set system path for OSServiceManager.");
+	CHK(pOsServ->SetWindowsDirectory(BSE(L"E:\\MyCache\\Vx\\Windows")),
+		"Failed to set windows dir for OSServiceManager.");
+
+	// Connect to OSService
+	*(IDismOSServiceManager**)(pProvStore - 8 + 22) = pOsServ;
+
+	CHK(pProvStore->AddProvider(BSE(L"CbsProvider")),		"Failed to connect to the CbsProvider.");
+	CHK(pProvStore->AddProvider(BSE(L"GenericProvider")),	"Failed to connect to the GenericProvider.");
+
+	return S_OK;
+}
+
 HRESULT RunApplication()
 {
 	BEGIN_ERROR_HANDLING();
 
 	CComPtr<IDismProviderStore> pProvStore;
 	CHK(pMain->GetLocalProviderStore(&pProvStore), "Failed to get IDismProviderStore.");
-
-	CHK(pProvStore->AddProvider(BSE(L"OSProvider")), "Failed to connect to the CbsProvider.");
-
-	CComPtr<IDismProvider> pOsProv;
-	CHK(pProvStore->GetProvider(BSE(L"OSServices"), (IDismProvider**)&pOsProv), "Failed to get OSServicesProvider.");
-
-	CComPtr<IDismOSServiceManager> pOsServ;
-	CHK(pOsProv->QueryInterface((IDismOSServiceManager**)&pOsServ), "Failed to get OSServiceManager.");
-
-	CHK(pOsServ->SetSystemPath(BSE(L"C:\\")),
-		"Failed to set system path for OSServiceManager.");
-	CHK(pOsServ->SetWindowsDirectory(BSE(L"C:\\Windows")),
-		"Failed to set windows dir for OSServiceManager.");
 	
-	CComBSTR pathStack;
-	CHK(pOsServ->get_ServicingStackDirectory(&pathStack), "Failed to get path to stack.");
+	CHK(ConfigProviderStore(pProvStore), "Failed to config IDismProviderStore.");
+	CComPtr<IDismProvider> pCbsProv;
+	CHK(pProvStore->GetProvider(BSE(L"DISM Package Manager"), &pCbsProv),
+		"Failed to get PkgMgr(CBS) Provider.");
+	CComPtr<IDismPackageManager5> pPkgMgr;
+	pCbsProv->QueryInterface(&pPkgMgr);
+	CComPtr<IDismCapabilityCollection> pCapas;
+	pPkgMgr->GetCapabilityCollection(DISM_ON_DEMAND_SOURCE_CLOUD, &pCapas);
 
-	wprintf(L"Stack Path: %s\n", BSTR2SZ(pathStack));
+	auto v(GetInterfaces<IDismCapability>(pCapas));
+
+	for (auto pCapa : v)
+	{
+		CComBSTR pProp;
+		pCapa->get_Id(&pProp);
+		std::wcout << "ID: " << BSTR2SZ(pProp) << std::endl;
+		pCapa->get_DisplayName(&pProp);
+		std::wcout << "Name: " << BSTR2SZ(pProp) << std::endl;
+
+		DISM_INSTALL_STATE state;
+		pCapa->get_State(&state);
+		std::wcout << TextizeState(state) << std::endl;
+	}
+
+	// Accessibility.Braille
+	CHK(v[0]->Install(), "Failed to install...");
 
 	return S_OK;
 }

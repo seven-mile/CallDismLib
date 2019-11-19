@@ -3,7 +3,7 @@
 // Powerful(Complex?...) Error Handling
 
 #define BEGIN_ERROR_HANDLING() HRESULT hr = (S_OK)
-#define HR_LOG(x,y,...) (SLog(y L" [HRESULT - 0x%x - %s]",##__VA_ARGS__,(x),TextizeHr(x).c_str()))
+#define HR_LOG(x,y,...) (SLog(L"Error\t" y L" [HRESULT - 0x%x - %s]",##__VA_ARGS__,(x),TextizeHr(x).c_str()))
 #define WIN32ERR_LOG(x,y,...) HR_LOG(HRESULT_FROM_WIN32(x),y,##__VA_ARGS__)
 #define LASTERR_LOG(y,...) WIN32ERR_LOG(GetLastError(),y,##__VA_ARGS__)
 #define RET_HR_LOG(x,y,...) return HR_LOG(x,y,##__VA_ARGS__),(x)
@@ -60,6 +60,38 @@ inline std::wstring TextizeHr(HRESULT hr)
 	return result;
 }
 
-// Disable Warnings
+inline std::wstring TextizeState(DISM_INSTALL_STATE s)
+{
+	const std::unordered_map<DISM_INSTALL_STATE, std::wstring> conv_state
+	{
+		{ DISM_INSTALL_STATE_UNKNOWN, L"Unknown" },
+		{ DISM_INSTALL_STATE_NOTPRESENT, L"Not Present" },
+		{ DISM_INSTALL_STATE_UNINSTALLREQUESTED, L"Uninstall Requested" },
+		{ DISM_INSTALL_STATE_STAGED, L"Staged" },
+		{ DISM_INSTALL_STATE_STAGING, L"Staging" },
+		{ DISM_INSTALL_STATE_INSTALLED, L"Installed" },
+		{ DISM_INSTALL_STATE_INSTALLREQUESTED, L"Install Requested" },
+		{ DISM_INSTALL_STATE_SUPERSEDED, L"Superseded" },
+		{ DISM_INSTALL_STATE_PARTIALLYINSTALLED, L"Partially Installed" },
+		{ DISM_INSTALL_STATE_REMOVED, L"Removed" },
+	};
 
-#pragma warning(disable: 6031 6385 6386 6054)
+	return conv_state.at(s);
+}
+
+template <class Interface, class Collection>
+inline std::vector<CComPtr<Interface>> GetInterfaces(CComPtr<Collection> pColl)
+{
+	BEGIN_ERROR_HANDLING();
+
+	std::vector<CComPtr<Interface>> v;
+	
+	for (LONG k = 1, n, t = pColl->get_Count(&n); k <= n; k++)
+	{
+		CComPtr<Interface> ptr;
+		CHKL(pColl->get_Item(k, &ptr), "Failed to enum item.");
+		v.push_back(ptr);
+	}
+
+	return v;
+}

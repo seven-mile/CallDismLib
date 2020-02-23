@@ -5,6 +5,7 @@
     "type_traits": "cpp",
     "xtr1common": "cpp",
     "functional": "cpp",
-    "rpc.h": "c"
+    "rpc.h": "c",
+    "memory": "cpp"
   }
 }

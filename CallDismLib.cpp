@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "dism_h.h"
+#include "wdslog.h"
 #include "dllhelper.hpp"
 
 Path pathDismCore;
@@ -71,9 +72,9 @@ HRESULT ConfigProviderStore(CComPtr<IDismProviderStore> pProvStore)
 	CComPtr<IDismOSServiceManager> pOsServ;
 	CHK(pOsProv->QueryInterface(&pOsServ), "Failed to get OSServiceManager.");
 
-	CHK(pOsServ->SetSystemPath(BSE(L"E:\\MyCache\\Vx")),
+	CHK(pOsServ->SetSystemPath(BSE(L"C:")),
 		"Failed to set system path for OSServiceManager.");
-	CHK(pOsServ->SetWindowsDirectory(BSE(L"E:\\MyCache\\Vx\\Windows")),
+	CHK(pOsServ->SetWindowsDirectory(BSE(L"C:\\Windows")),
 		"Failed to set windows dir for OSServiceManager.");
 
 	// Connect to OSService
@@ -85,6 +86,36 @@ HRESULT ConfigProviderStore(CComPtr<IDismProviderStore> pProvStore)
 	return S_OK;
 }
 
+HRESULT EnumFeatures(CComPtr<IDismProviderStore> pProvStore)
+{
+	BEGIN_ERROR_HANDLING();
+
+	CComPtr<IDismProvider> pCbsProv;
+	CHK(pProvStore->GetProvider(BSE(L"DISM Package Manager"), &pCbsProv),
+		"Failed to get PkgMgr(CBS) Provider.");
+	CComPtr<IDismPackageManager5> pPkgMgr;
+	pCbsProv->QueryInterface(&pPkgMgr);
+
+	CComPtr<IDismPackage4> pFoudPkg;
+	pPkgMgr->OpenFoundationPackage((IDismPackage**)&pFoudPkg);
+
+	CComPtr<IDismPackageFeatureCollection> pFeatColl;
+	pFoudPkg->GetPackageFeatureCollection(&pFeatColl);
+
+	for (auto pFeat : GetInterfaces<IDismPackageFeature>(pFeatColl))
+	{
+		CComBSTR bszName, bszDesc, bszFile;
+		pFeat->get_Name(&bszName);
+		pFeat->get_Description(&bszDesc);
+		pFeat->get_DisplayFile(&bszFile);
+
+		std::wcout
+			<< "Name: " << BSTR2SZ(bszName) << std::endl
+			<< "Desc: " << BSTR2SZ(bszDesc) << std::endl
+			<< "File: " << BSTR2SZ(bszFile) << std::endl;
+	}
+}
+
 HRESULT RunApplication()
 {
 	BEGIN_ERROR_HANDLING();
@@ -93,31 +124,14 @@ HRESULT RunApplication()
 	CHK(pMain->GetLocalProviderStore(&pProvStore), "Failed to get IDismProviderStore.");
 	
 	CHK(ConfigProviderStore(pProvStore), "Failed to config IDismProviderStore.");
-	CComPtr<IDismProvider> pCbsProv;
-	CHK(pProvStore->GetProvider(BSE(L"DISM Package Manager"), &pCbsProv),
-		"Failed to get PkgMgr(CBS) Provider.");
-	CComPtr<IDismPackageManager5> pPkgMgr;
-	pCbsProv->QueryInterface(&pPkgMgr);
-	CComPtr<IDismCapabilityCollection> pCapas;
-	pPkgMgr->GetCapabilityCollection(DISM_ON_DEMAND_SOURCE_CLOUD, &pCapas);
+	
+	CComPtr<IDismLogger> pLogger;
+	pMain->get_Logger(&pLogger);
+	CLogManager* pLog = (CLogManager*)(pLogger + 32);
 
-	auto v(GetInterfaces<IDismCapability>(pCapas));
+	auto hrx = pLog->Playback();
 
-	for (auto pCapa : v)
-	{
-		CComBSTR pProp;
-		pCapa->get_Id(&pProp);
-		std::wcout << "ID: " << BSTR2SZ(pProp) << std::endl;
-		pCapa->get_DisplayName(&pProp);
-		std::wcout << "Name: " << BSTR2SZ(pProp) << std::endl;
-
-		DISM_INSTALL_STATE state;
-		pCapa->get_State(&state);
-		std::wcout << TextizeState(state) << std::endl;
-	}
-
-	// Accessibility.Braille
-	CHK(v[0]->Install(), "Failed to install...");
+	pLog->LogW((UINT)pLog, L"asdanaksd");
 
 	return S_OK;
 }

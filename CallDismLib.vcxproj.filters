@@ -44,5 +44,8 @@
     <ClInclude Include="dllhelper.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="wdslog.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
